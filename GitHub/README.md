@@ -61,6 +61,7 @@ failed (or, for the audit, when a check found a gap).
 | `11-gh-enable-dependabot-malware-alerts.sh` | Malware alert coverage - same toggle as `07`/`09`, kept as a labelled step |
 | `12-gh-enable-codeql.sh` | Enable CodeQL default setup (counterpart of `destructive/24`) |
 | `13-gh-add-security-md.sh` | Commit a `SECURITY.md` when the repository has none (never overwrites) |
+| `14-gh-set-ruleset-bypass.sh` | Replace a ruleset's whole bypass list with one user (passed as an argument) |
 | `99-gh-audit-security.sh` | **Read-only** compliance report, exits non-zero on gaps |
 | `destructive/20-gh-delete-rulesets.sh` | Deletes all rulesets (destructive) |
 | `destructive/24-gh-disable-codeql.sh` | Disables CodeQL default setup (destructive) |
@@ -114,6 +115,29 @@ Preview the payload without applying it:
 ```bash
 DRY_RUN=1 bash 03-gh-setup-rulesets.sh
 ```
+
+## Replacing the ruleset bypass list (`14`)
+
+`14-gh-set-ruleset-bypass.sh` removes **every** existing bypass actor of the
+ruleset and adds a single user as the only bypass actor. The user is passed as
+an argument (or via `BYPASS_USER`):
+
+```bash
+bash 14-gh-set-ruleset-bypass.sh octocat
+OWNER="my-org" REPOS="repo1,repo2" bash 14-gh-set-ruleset-bypass.sh octocat
+BYPASS_MODE=pull_request bash 14-gh-set-ruleset-bypass.sh octocat
+RULESET_NAME=my-ruleset bash 14-gh-set-ruleset-bypass.sh octocat
+DRY_RUN=1 bash 14-gh-set-ruleset-bypass.sh octocat
+```
+
+The username is resolved to a user id and added with `actor_type: "User"`;
+individual users in a bypass list require a recent API version, so the script
+sends `X-GitHub-Api-Version: 2026-03-10` by default (override with
+`API_VERSION`). The ruleset's rules and conditions are preserved: the script
+reads the ruleset, replaces only `bypass_actors` and writes it back with `PUT`.
+
+This script is intentionally **not** part of `00-run-all.sh`: it needs an
+argument and it deliberately wipes the existing bypass list.
 
 ## The audit (`99`)
 
